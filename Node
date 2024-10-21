@@ -1,0 +1,54 @@
+---
+- name: Setup Node Exporter
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Ensure wget is installed
+      apt:
+        name: wget
+        state: present
+
+    - name: Download the tar file
+      get_url:
+        url: "http://example.com/path/to/node_exporter.tar.gz"  # Update with your actual URL
+        dest: "/tmp/node_exporter.tar.gz"
+
+    - name: Extract the tar file
+      unarchive:
+        src: "/tmp/node_exporter.tar.gz"
+        dest: "/opt/"
+        remote_src: yes
+
+    - name: Copy node_exporter binary to /usr/local/bin
+      copy:
+        src: "/opt/node_exporter/node_exporter"  # Adjust the path based on extraction
+        dest: "/usr/local/bin/node_exporter"
+        mode: '0755'
+
+    - name: Create systemd service file for node_exporter
+      copy:
+        dest: "/etc/systemd/system/node_exporter.service"
+        content: |
+          [Unit]
+          Description=Node Exporter
+
+          [Service]
+          User=nobody
+          ExecStart=/usr/local/bin/node_exporter
+
+          [Install]
+          WantedBy=default.target
+
+    - name: Reload systemd daemon
+      command: systemctl daemon-reload
+
+    - name: Enable node_exporter service
+      systemd:
+        name: node_exporter
+        enabled: yes
+
+    - name: Start node_exporter service
+      systemd:
+        name: node_exporter
+        state: started
